@@ -26,8 +26,8 @@
 
 #include "coap.h"
 
-#define GOLDOON_WIFI_SSID CONFIG_WIFI_SSID
-#define GOLDOON_WIFI_PASS CONFIG_WIFI_PASSWORD
+#define GOLDOON_WIFI_SSID "Parham-Main"
+#define GOLDOON_WIFI_PASS "Parham13730321"
 
 #define COAP_DEFAULT_TIME_SEC 5
 #define COAP_DEFAULT_TIME_USEC 0
@@ -50,9 +50,9 @@ static void send_async_response(coap_context_t *ctx,
 {
 	coap_pdu_t *response;
 	unsigned char buf[3];
-	const char *response_data = "Hello World!";
+	const char *response_data = "18.20 is leaving us";
 
-	size_t size = sizeof(coap_hdr_t) + 20;
+	size_t size = sizeof(coap_hdr_t) + 30;
 	response = coap_pdu_init(async->flags & COAP_MESSAGE_CON,
 			COAP_RESPONSE_CODE(205), 0, size);
 	response->hdr->id = coap_new_message_id(ctx);
@@ -81,7 +81,7 @@ static void async_handler(coap_context_t *ctx, struct coap_resource_t *resource,
 	async = coap_register_async(ctx, peer, request, COAP_ASYNC_SEPARATE | COAP_ASYNC_CONFIRM, (void*)"no data");
 }
 
-static void coap_example_thread(void *p)
+static void coap_goldoon_thread(void *p)
 {
 	coap_context_t*  ctx = NULL;
 	coap_address_t   serv_addr;
@@ -91,9 +91,10 @@ static void coap_example_thread(void *p)
 	int flags = 0;
 
 	while (1) {
-		/* Wait for the callback to set the CONNECTED_BIT in the
-		   event group.
-		   */
+		/*
+		 * Wait for the callback to set the CONNECTED_BIT in the
+		 * event group.
+		 */
 		xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT,
 				false, true, portMAX_DELAY);
 		ESP_LOGI(TAG, "Connected to AP");
@@ -111,7 +112,7 @@ static void coap_example_thread(void *p)
 			tv.tv_usec = COAP_DEFAULT_TIME_USEC;
 			tv.tv_sec = COAP_DEFAULT_TIME_SEC;
 			/* Initialize the resource */
-			resource = coap_resource_init((unsigned char *)"Espressif", 9, 0);
+			resource = coap_resource_init((unsigned char *)"About", 9, 0);
 			if (resource){
 				coap_register_handler(resource, COAP_REQUEST_GET, async_handler);
 				coap_add_resource(ctx, resource);
@@ -175,6 +176,7 @@ static void wifi_conn_init(void)
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+	printf("%s - %s\n", GOLDOON_WIFI_SSID, GOLDOON_WIFI_PASS);
 	wifi_config_t wifi_config = {
 		.sta = {
 			.ssid = GOLDOON_WIFI_SSID,
@@ -196,5 +198,12 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
 	printf("%02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-	xTaskCreate(coap_example_thread, "coap", 2048, NULL, 5, NULL);
+	/*
+	 * Internally, within the FreeRTOS implementation, tasks use two blocks of
+ 	 * memory.  The first block is used to hold the task's data structures.  The
+ 	 * second block is used by the task as its stack.  If a task is created using
+ 	 * xTaskCreate() then both blocks of memory are automatically dynamically
+ 	 * allocated inside the xTaskCreate() function.
+ 	 */
+	xTaskCreate(coap_goldoon_thread, "coap", 2048, NULL, 5, NULL);
 }
