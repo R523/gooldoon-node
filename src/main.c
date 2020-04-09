@@ -28,6 +28,7 @@
 #include "connect.h"
 
 #include "coap.h"
+#include "cJSON.h"
 
 /* Set this to 9 to get verbose logging from within libcoap */
 #define COAP_LOGGING_LEVEL 0
@@ -46,15 +47,22 @@ static void hnd_elahe_get(coap_context_t *ctx, coap_resource_t *resource,
                           coap_session_t *session, coap_pdu_t *request,
                           coap_binary_t *token, coap_string_t *query,
                           coap_pdu_t *response) {
-  char response_data[100];
-  size_t response_data_len;
+  char *response_data;
+  cJSON *response_json = cJSON_CreateObject();
 
-  response_data_len = snprintf(response_data, sizeof(response_data),
-                               "Hello, Elahe %ld", time(NULL));
+  if (cJSON_AddStringToObject(response_json, "name", "elahe") == NULL) {
+    return;
+  }
+
+  if (cJSON_AddNumberToObject(response_json, "time", time(NULL)) == NULL) {
+    return;
+  }
+
+  response_data = cJSON_Print(response_json);
 
   coap_add_data_blocked_response(
       resource, session, request, response, token, COAP_MEDIATYPE_TEXT_PLAIN, 0,
-      (size_t)response_data_len, (const u_char *)response_data);
+      strlen(response_data), (const u_char *)response_data);
 }
 
 static void coap_goldoon_server(void *p) {
