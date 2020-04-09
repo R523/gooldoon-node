@@ -16,17 +16,16 @@
 #include <sys/socket.h>
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "freertos/task.h"
 
+#include "esp_event.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
-#include "esp_event.h"
 
 #include "nvs_flash.h"
 
 #include "connect.h"
-//#include "protocol_examples_common.h"
 
 #include "coap.h"
 
@@ -37,18 +36,21 @@ const static char *TAG = "esp32_demo";
 const static int PORT = 1378;
 
 /* Wifi Credentials */
+#define DEMO_WIFI_SSID "ssid"
+#define DEMO_WIFI_PASSWORD "secret"
 
 /*
  * The resource handler
  */
 static void hnd_elahe_get(coap_context_t *ctx, coap_resource_t *resource,
-                              coap_session_t *session, coap_pdu_t *request,
-                              coap_binary_t *token, coap_string_t *query,
-                              coap_pdu_t *response) {
+                          coap_session_t *session, coap_pdu_t *request,
+                          coap_binary_t *token, coap_string_t *query,
+                          coap_pdu_t *response) {
   char response_data[100];
   size_t response_data_len;
 
-  response_data_len = snprintf(response_data, sizeof(response_data), "Hello, Elahe %ld", time(NULL));
+  response_data_len = snprintf(response_data, sizeof(response_data),
+                               "Hello, Elahe %ld", time(NULL));
 
   coap_add_data_blocked_response(
       resource, session, request, response, token, COAP_MEDIATYPE_TEXT_PLAIN, 0,
@@ -59,7 +61,6 @@ static void coap_goldoon_server(void *p) {
   coap_context_t *ctx = NULL;
   coap_address_t serv_addr;
   coap_resource_t *resource = NULL;
-
 
   coap_set_log_level(COAP_LOGGING_LEVEL);
 
@@ -124,14 +125,14 @@ void app_main(void) {
   tcpip_adapter_init();
   ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-  ESP_ERROR_CHECK(wifi_credentials("Parham-Main", "Parham13730321"));
+  ESP_ERROR_CHECK(wifi_credentials(DEMO_WIFI_SSID, DEMO_WIFI_PASSWORD));
   ESP_ERROR_CHECK(wifi_connect());
 
   // uses mac address as an unique identifier
   uint8_t mac[6];
   ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
-  ESP_LOGI(TAG, "%02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3],
-         mac[4], mac[5]);
+  ESP_LOGI(TAG, "%02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2],
+           mac[3], mac[4], mac[5]);
 
   /*
    * Internally, within the FreeRTOS implementation, tasks use two blocks of
