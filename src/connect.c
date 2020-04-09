@@ -8,8 +8,6 @@
    CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
-#include <string.h>
 #include "connect.h"
 #include "driver/gpio.h"
 #include "esp_event.h"
@@ -21,9 +19,10 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "tcpip_adapter.h"
+#include <string.h>
 
-static char wifi_ssid[32] = "ssid";
-static char wifi_password[64] = "secret";
+static uint8_t wifi_ssid[32] = {0};
+static uint8_t wifi_password[64] = {0};
 
 #define GOT_IPV4_BIT BIT(0)
 #define GOT_IPV6_BIT BIT(1)
@@ -45,17 +44,15 @@ static void on_wifi_disconnect(void *arg, esp_event_base_t event_base,
 }
 
 static void on_wifi_connect(void *arg, esp_event_base_t event_base,
-                            int32_t event_id, void *event_data)
-{
-    tcpip_adapter_create_ip6_linklocal(TCPIP_ADAPTER_IF_STA);
+                            int32_t event_id, void *event_data) {
+  tcpip_adapter_create_ip6_linklocal(TCPIP_ADAPTER_IF_STA);
 }
 
 static void on_got_ipv6(void *arg, esp_event_base_t event_base,
-                        int32_t event_id, void *event_data)
-{
-    ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
-    memcpy(&s_ipv6_addr, &event->ip6_info.ip, sizeof(s_ipv6_addr));
-    xEventGroupSetBits(s_connect_event_group, GOT_IPV6_BIT);
+                        int32_t event_id, void *event_data) {
+  ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
+  memcpy(&s_ipv6_addr, &event->ip6_info.ip, sizeof(s_ipv6_addr));
+  xEventGroupSetBits(s_connect_event_group, GOT_IPV6_BIT);
 }
 
 static void on_got_ip(void *arg, esp_event_base_t event_base, int32_t event_id,
@@ -75,24 +72,26 @@ static void start() {
   ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
                                              &on_got_ip, NULL));
 
-  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &on_wifi_connect, NULL));
-  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6, &on_got_ipv6, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(
+      WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &on_wifi_connect, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6,
+                                             &on_got_ipv6, NULL));
 
   ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-  wifi_config_t wifi_config;
+  wifi_config_t wifi_config = {};
 
-  memset(wifi_config.sta.ssid, 0, sizeof(wifi_config.sta.ssid));
-  memset(wifi_config.sta.password, 0, sizeof(wifi_config.sta.password));
-  strncpy((char *) wifi_config.sta.ssid, wifi_ssid, sizeof(wifi_config.sta.ssid));
-  strncpy((char *) wifi_config.sta.password, wifi_password, sizeof(wifi_config.sta.password));
+  memcpy(wifi_config.sta.ssid, wifi_ssid, sizeof(wifi_config.sta.ssid));
+  memcpy(wifi_config.sta.password, wifi_password,
+         sizeof(wifi_config.sta.password));
 
-  ESP_LOGI(TAG, "Connecting to %s:%s...", wifi_config.sta.ssid, wifi_config.sta.password);
+  ESP_LOGI(TAG, "Connecting to %s:%s...", wifi_config.sta.ssid,
+           wifi_config.sta.password);
 
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_start());
   ESP_ERROR_CHECK(esp_wifi_connect());
-  s_connection_name = wifi_ssid;
+  s_connection_name = (const char *)wifi_ssid;
 }
 
 /* tear down connection, release resources */
@@ -101,8 +100,10 @@ static void stop() {
       WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &on_wifi_disconnect));
   ESP_ERROR_CHECK(
       esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &on_got_ip));
-      ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_GOT_IP6, &on_got_ipv6));
-    ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &on_wifi_connect));
+  ESP_ERROR_CHECK(
+      esp_event_handler_unregister(IP_EVENT, IP_EVENT_GOT_IP6, &on_got_ipv6));
+  ESP_ERROR_CHECK(esp_event_handler_unregister(
+      WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &on_wifi_connect));
   ESP_ERROR_CHECK(esp_wifi_stop());
   ESP_ERROR_CHECK(esp_wifi_deinit());
 }
@@ -110,12 +111,12 @@ static void stop() {
 esp_err_t wifi_credentials(const char *ssid, const char *pass) {
   int len;
 
-  len = snprintf(wifi_ssid, sizeof(wifi_ssid), ssid);
+  len = snprintf((char *)wifi_ssid, sizeof(wifi_ssid), ssid);
   if (len != strlen(ssid)) {
     return ESP_ERR_INVALID_SIZE;
   }
 
-  len = snprintf(wifi_password, sizeof(wifi_password), pass);
+  len = snprintf((char *)wifi_password, sizeof(wifi_password), pass);
   if (len != strlen(pass)) {
     return ESP_ERR_INVALID_SIZE;
   }
