@@ -68,6 +68,8 @@ static void hnd_elahe_get(coap_context_t *ctx, coap_resource_t *resource,
   coap_add_data_blocked_response(
       resource, session, request, response, token, COAP_MEDIATYPE_TEXT_PLAIN, 0,
       strlen(response_data), (const u_char *)response_data);
+
+  free(response_data);
 }
 
 static void hnd_led_get(coap_context_t *ctx, coap_resource_t *resource,
@@ -92,6 +94,8 @@ static void hnd_led_get(coap_context_t *ctx, coap_resource_t *resource,
   coap_add_data_blocked_response(
       resource, session, request, response, token, COAP_MEDIATYPE_TEXT_PLAIN, 0,
       strlen(response_data), (const u_char *)response_data);
+
+  free(response_data);
 }
 
 static void coap_goldoon_server(void *p) {
