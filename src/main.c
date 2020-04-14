@@ -32,6 +32,9 @@
 #include "coap.h"
 #include "cJSON.h"
 
+/* from https://github.com/UncleRus/esp-idf-lib */
+#include <dht.h>
+
 /* Set this to 9 to get verbose logging from within libcoap */
 #define COAP_LOGGING_LEVEL 0
 
@@ -56,17 +59,20 @@ static void hnd_elahe_get(coap_context_t *ctx, coap_resource_t *resource,
   cJSON *response_json = cJSON_CreateObject();
 
   if (cJSON_AddStringToObject(response_json, "name", "elahe") == NULL) {
+    response->code = COAP_RESPONSE_500;
     return;
   }
 
   if (cJSON_AddNumberToObject(response_json, "time", time(NULL)) == NULL) {
+    response->code = COAP_RESPONSE_500;
     return;
   }
 
   response_data = cJSON_Print(response_json);
 
+  response->code = COAP_RESPONSE_200;
   coap_add_data_blocked_response(
-      resource, session, request, response, token, COAP_MEDIATYPE_TEXT_PLAIN, 0,
+      resource, session, request, response, token, COAP_MEDIATYPE_APPLICATION_JSON, 0,
       strlen(response_data), (const u_char *)response_data);
 
   free(response_data);
@@ -84,6 +90,7 @@ static void hnd_led_get(coap_context_t *ctx, coap_resource_t *resource,
   cJSON *response_json = cJSON_CreateObject();
 
   if (cJSON_AddBoolToObject(response_json, "status", status) == NULL) {
+    response->code = COAP_RESPONSE_500;
     return;
   }
 
@@ -91,8 +98,46 @@ static void hnd_led_get(coap_context_t *ctx, coap_resource_t *resource,
 
   gpio_set_level(LED_GPIO, status);
 
+  response->code = COAP_RESPONSE_200;
   coap_add_data_blocked_response(
-      resource, session, request, response, token, COAP_MEDIATYPE_TEXT_PLAIN, 0,
+      resource, session, request, response, token, COAP_MEDIATYPE_APPLICATION_JSON, 0,
+      strlen(response_data), (const u_char *)response_data);
+
+  free(response_data);
+}
+
+static void hnd_dht_get(coap_context_t *ctx, coap_resource_t *resource,
+                          coap_session_t *session, coap_pdu_t *request,
+                          coap_binary_t *token, coap_string_t *query,
+                          coap_pdu_t *response) {
+
+  float temperature = 0;
+  float humidity = 0;
+
+  char *response_data;
+  cJSON *response_json = cJSON_CreateObject();
+
+  if (dht_read_float_data(sensor_type, DHT11_GPIO, &humidity, &temperature) == ESP_OK) {
+    if (cJSON_AddNumberToObject(response_json, "temperature", temperature) == NULL) {
+      response->code = COAP_RESPONSE_500;
+      return;
+    }
+
+    if (cJSON_AddNumberToObject(response_json, "humidity", humidity) == NULL) {
+      response->code = COAP_RESPONSE_500;
+      return;
+    }
+
+    response->code = COAP_RESPONSE_200;
+  } else {
+    response->code = COAP_RESPONSE_503;
+  }
+
+
+  response_data = cJSON_Print(response_json);
+
+  coap_add_data_blocked_response(
+      resource, session, request, response, token, COAP_MEDIATYPE_APPLICATION_JSON, 0,
       strlen(response_data), (const u_char *)response_data);
 
   free(response_data);
@@ -151,6 +196,18 @@ static void coap_goldoon_server(void *p) {
     coap_resource_set_get_observable(resource, 1);
     coap_add_resource(ctx, resource);
 
+    /* register "dht" */
+    resource = coap_resource_init(coap_make_str_const("dht"), 0);
+    if (!resource) {
+      ESP_LOGE(TAG, "coap_resource_init() failed");
+      goto clean_up;
+    }
+
+    coap_register_handler(resource, COAP_REQUEST_GET, hnd_dht_get);
+    /* We possibly want to Observe the GETs */
+    coap_resource_set_get_observable(resource, 1);
+    coap_add_resource(ctx, resource);
+
 
     wait_ms = COAP_RESOURCE_CHECK_TIME * 1000;
 
@@ -177,8 +234,14 @@ clean_up:
 
 void app_main(void) {
   gpio_pad_select_gpio(LED_GPIO);
+  gpio_pad_select_gpio(V33_GPIO);
+
   /* Set the GPIO as a push/pull output */
   gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
+  gpio_set_direction(V33_GPIO, GPIO_MODE_OUTPUT);
+
+  /* setup the v3.3 output */
+  gpio_set_level(V33_GPIO, 1);
 
   ESP_ERROR_CHECK(nvs_flash_init());
   tcpip_adapter_init();
