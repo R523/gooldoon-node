@@ -8,4 +8,5 @@ steps:
     image: python
     commands:
       - pip install -U platformio
+      - pio lib -e esp32dev install
       - pio run
