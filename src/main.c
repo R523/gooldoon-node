@@ -20,6 +20,7 @@
 #include "freertos/task.h"
 
 #include "driver/gpio.h"
+#include "driver/adc.h"
 
 #include "esp_event.h"
 #include "esp_log.h"
@@ -146,6 +147,36 @@ static void hnd_dht_get(coap_context_t *ctx, coap_resource_t *resource,
   free(response_data);
 }
 
+
+static void hnd_soil_get(coap_context_t *ctx, coap_resource_t *resource,
+                          coap_session_t *session, coap_pdu_t *request,
+                          coap_binary_t *token, coap_string_t *query,
+                          coap_pdu_t *response) {
+
+  /* soil moisture analog signal is connected to GPIO32 (ADC1 Channel 4) */
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_4,ADC_ATTEN_DB_0);
+  int moisture = adc1_get_raw(ADC1_CHANNEL_0);
+
+  char *response_data;
+  cJSON *response_json = cJSON_CreateObject();
+
+  if (cJSON_AddNumberToObject(response_json, "moisture", moisture) == NULL) {
+    response->code = COAP_RESPONSE_500;
+    return;
+  }
+
+  response->code = COAP_RESPONSE_200;
+
+  response_data = cJSON_Print(response_json);
+
+  coap_add_data_blocked_response(
+      resource, session, request, response, token, COAP_MEDIATYPE_APPLICATION_JSON, 0,
+      strlen(response_data), (const u_char *)response_data);
+
+  free(response_data);
+}
+
 static void coap_goldoon_server(void *p) {
   coap_context_t *ctx = NULL;
   coap_address_t serv_addr;
@@ -207,6 +238,18 @@ static void coap_goldoon_server(void *p) {
     }
 
     coap_register_handler(resource, COAP_REQUEST_GET, hnd_dht_get);
+    /* We possibly want to Observe the GETs */
+    coap_resource_set_get_observable(resource, 1);
+    coap_add_resource(ctx, resource);
+
+    /* register "soil" */
+    resource = coap_resource_init(coap_make_str_const("soil"), 0);
+    if (!resource) {
+      ESP_LOGE(TAG, "coap_resource_init() failed");
+      goto clean_up;
+    }
+
+    coap_register_handler(resource, COAP_REQUEST_GET, hnd_soil_get);
     /* We possibly want to Observe the GETs */
     coap_resource_set_get_observable(resource, 1);
     coap_add_resource(ctx, resource);
