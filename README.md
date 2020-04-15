@@ -16,6 +16,7 @@ First of all, set your WiFi credentials in `src/main.c`:
 The use [PlatformIO](https://platformio.org/) run program the board and have fun:
 
 ```sh
+pio lib -e esp32dev install
 pio run
 pio run --target upload
 pio device monitor
