@@ -43,6 +43,9 @@ const static int PORT = 1378;
 
 #define LED_GPIO 18
 #define DHT11_GPIO 21
+#define V33_GPIO 19
+
+static const dht_sensor_type_t sensor_type = DHT_TYPE_DHT11;
 
 /* Wifi Credentials */
 #define DEMO_WIFI_SSID "ssid"
