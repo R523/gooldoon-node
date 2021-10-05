@@ -1,0 +1,15 @@
+---
+name: ci
+on:
+  - push
+jobs:
+  build:
+    name: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install -U platformio
+      - run: pio lib -e esp32dev install
+      - run: pio run
