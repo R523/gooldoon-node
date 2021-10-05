@@ -1,10 +1,11 @@
-# ESP32-Demo
-[![Drone (cloud)](https://img.shields.io/drone/build/R523/esp32-demo.svg?style=flat-square)](https://cloud.drone.io/R523/esp32-demo)
+# Gooldoon Node
 
 ## Introduction
-Up and Running example with ESP32. We have plan to use it on smart flower pots.
+
+Up and Running example with ESP32 and use it as a simple smart flower pot.
 
 ## Up and Running
+
 First of all, set your WiFi credentials in `src/main.c`:
 
 ```c
