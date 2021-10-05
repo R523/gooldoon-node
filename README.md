@@ -1,5 +1,7 @@
 # Gooldoon Node
 
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/r523/gooldoon-node/ci?label=ci&logo=github&style=flat-square)
+
 ## Introduction
 
 Up and Running example with ESP32 and use it as a simple smart flower pot.
