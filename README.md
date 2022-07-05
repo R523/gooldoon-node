@@ -1,4 +1,4 @@
-# Gooldoon Node
+# Gooldoon Node :sunflower:
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/r523/gooldoon-node/ci?label=ci&logo=github&style=flat-square)
 
