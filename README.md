@@ -1,6 +1,6 @@
 # Gooldoon Node :sunflower:
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/r523/gooldoon-node/ci?label=ci&logo=github&style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/r523/gooldoon-node/ci.yaml?label=ci&logo=github&style=flat-square&branch=main)
 
 ## Introduction
 
